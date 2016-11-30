@@ -1,0 +1,278 @@
+<html>
+  <head>
+    <meta name="viewport" content="height=1920, width=1080">
+    <style type="text/css">
+      body {
+        margin: 0;
+        background-color: #7E925A;
+      }
+      .loader {
+        margin: 0px auto;
+        top:870px;
+        position: relative;
+        border: 16px solid hsl(78, 20%, 55%);
+        border-top: 16px solid #f3f3f3;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: loadanimation 5s linear infinite;
+        -webkit-animation: loadanimation 5s linear infinite;
+      }
+      @-webkit-keyframes loadanimation {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes loadanimation {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <div id="load" class="loader"></div>
+  <canvas id="art"  width="1080" height="1920"></canvas>
+  <script>
+    var steps = [
+      {
+        ops: 'hold',
+        arg: {duration: 5000}
+      },
+      {
+        ops: pixcelate,
+        arg: {scale: 0.2},
+        width:120,
+        height:120
+      },
+      {
+        ops: pixcelate,
+        arg: {scale: 0.1},
+        width:100,
+        height:100
+      },
+      {
+        ops: pixcelate,
+        arg: {scale: 0.05},
+        width:80,
+        height:80
+      },
+      {
+        ops: 'knit',
+        width:20,
+        height:20
+      },
+      {
+        ops: 'hold',
+        arg: {duration: 35000}
+      },
+      {
+        ops: 'fade'
+      }
+    ]
+    var pixinterval = 200
+    var knitinterval = 200
+    var fadeinterval = 1500
+    var art = document.getElementById('art')
+    var artctx = art.getContext('2d')
+    var canv = document.createElement('canvas')
+    var ctx = canv.getContext('2d')
+    var step = 0
+    var baseimgData
+
+    var image = new Image()
+    image.crossOrigin = 'Anonymous'
+    image.src='./img/deer.jpg'
+
+    var x = 0
+    var y = 0
+    var fade = 0
+    var wGuage
+    var hGuage
+    var size = 20
+    var sWidth = size
+    var sHeight = size
+    var dip = size/2
+
+    function fabrication() {
+      var width = canv.width / steps[step].width
+      var height = canv.height / steps[step].height
+      var xi = x * steps[step].width
+      var yi = y * steps[step].height
+      var index = (xi + yi * canv.width) * 4
+      var colorData = ctx.getImageData(xi, yi, 1,1).data
+      knit(xi, yi,'rgb('+colorData[0]+','+colorData[1]+', '+colorData[2]+')')
+      x++
+      if (x >= width) {
+        x = 0
+        y++
+        if (y >= height) {
+          x = 0
+          y = 0
+          step++
+          return draw()
+        }
+      }
+      setTimeout(fabrication, knitinterval)
+    }
+
+    function fadeIn() {
+      fade++
+      artctx.globalAlpha = 0.01 * fade
+      artctx.drawImage(canv, 0, 0)
+      if (fade >= 34) {
+        fade = 0
+        step++
+        artctx.globalAlpha = 1
+        artctx.drawImage(canv, 0, 0)
+        return draw()
+      }
+      setTimeout(fadeIn, fadeinterval)
+    }
+
+    function pixcelate (img, arg) {
+      var _canv = document.createElement('canvas')
+      var _ctx = _canv.getContext('2d')
+      _canv.width = img.width
+      _canv.height = img.height
+      var _scanv = document.createElement('canvas')
+      var _sctx = _scanv.getContext('2d')
+      _scanv.width = img.width*arg.scale
+      _scanv.height = img.height*arg.scale
+
+      _ctx.putImageData(img, 0, 0)
+
+      _sctx.mozImageSmoothingEnabled = false
+      _sctx.webkitImageSmoothingEnabled = false
+      _sctx.msImageSmoothingEnabled = false
+      _sctx.imageSmoothingEnabled = false
+      _sctx.drawImage(_canv, 0, 0, img.width*arg.scale, img.height*arg.scale)
+
+      _ctx.mozImageSmoothingEnabled = false
+      _ctx.webkitImageSmoothingEnabled = false
+      _ctx.msImageSmoothingEnabled = false
+      _ctx.imageSmoothingEnabled = false
+      _ctx.drawImage(_scanv, 0, 0, img.width, img.height)
+
+      return _ctx.getImageData(0, 0, img.width, img.height)
+    }
+
+    function knit(x, y, fill){
+      artctx.beginPath();
+      artctx.moveTo(x+(sWidth/2),y+dip);
+      artctx.quadraticCurveTo(x+sWidth-(sWidth/3), y-(sHeight/12), x+sWidth-(sWidth/10), y-sHeight/4)
+      artctx.quadraticCurveTo(x+sWidth-(sWidth/50), y, x+sWidth-(sWidth/70), y+(sHeight/10))
+
+      artctx.bezierCurveTo(x+sWidth, y+(sHeight/4), x+sWidth, y+(sHeight*0.50), x+sWidth-(sWidth/15), y+(sHeight*0.66))
+
+      artctx.bezierCurveTo(x+sWidth-(sWidth*0.3), y+sHeight, x+sWidth-(sWidth*0.3), y+sHeight, x+sWidth-(sWidth/2)+(sWidth/20), y+sHeight+sHeight/3)
+
+      artctx.quadraticCurveTo(x+sWidth-(sWidth*0.55), y+(sHeight*0.7), x+sWidth-(sWidth/2),y+dip)
+      artctx.lineWidth = 1.5
+      artctx.stroke()
+
+      artctx.fillStyle = fill;
+      artctx.fill();
+
+      artctx.beginPath();
+      artctx.moveTo(x+(sWidth/2)-sWidth*.05,y+dip);
+
+      artctx.quadraticCurveTo(x+(sWidth*0.4), y+(sHeight/12), x+(sWidth/10), y-sHeight/4)
+
+      artctx.quadraticCurveTo(x+(sWidth/50), y, x+(sWidth/70), y+(sHeight/10))
+      artctx.bezierCurveTo(x, y+(sHeight/4), x, y+(sHeight*0.50), x+(sWidth/15), y+(sHeight*0.66))
+
+      artctx.bezierCurveTo(x+(sWidth*0.3), y+sHeight, x+(sWidth*0.3), y+sHeight, x+(sWidth/2)-(sWidth/20), y+sHeight+sHeight/3)
+
+      artctx.quadraticCurveTo(x+(sWidth*0.56), y+(sHeight+sHeight/4), x+(sWidth/2)-sWidth*.05,y+dip)
+
+      artctx.lineWidth = 1.5
+      artctx.stroke()
+      artctx.fillStyle = fill;
+      artctx.fill();
+    }
+
+    function fill() {
+      var w = steps[step].width
+      var h = steps[step].height
+      artctx.putImageData(ctx.getImageData(x*w, y*h, w, h), x*w, y*h)
+      var next = ctx.getImageData((x+1)*w, y*h, w, h)
+      for (var i = 3; i < next.data.length; i+=4) {
+        next.data[i] = 180
+      }
+      artctx.putImageData(next,(x+1)*w, y*h)
+      x++
+      if (x >= art.width/steps[step].width) {
+        x = 0
+        y++
+        if (y >= art.height/steps[step].height) {
+          x = 0
+          y = 0
+          step++
+          return draw()
+        }
+      }
+      setTimeout(fill, pixinterval)
+    }
+
+    function draw () {
+      if (step >= steps.length) {
+        step = 0
+      }
+
+      if(steps[step].imgData) {
+        ctx.putImageData(steps[step].imgData, 0, 0)
+      }
+
+      if (steps[step].ops === 'hold'){
+        setTimeout(function () {
+          step++
+          draw()
+        }, steps[step].arg.duration)
+        return
+      }
+
+      if (steps[step].ops === 'fade'){
+        ctx.putImageData(baseimgData, 0, 0)
+        return fadeIn()
+      }
+
+      if (steps[step].ops === 'knit'){
+        return fabrication()
+      }
+
+      fill()
+    }
+
+    image.onload = function () {
+      wGuage = image.width/size
+      hGuage = image.height/size
+      canv.width = image.width
+      canv.height = image.height
+      art.width = image.width
+      art.height = image.height
+      ctx.drawImage(image, 0, 0, canv.width, canv.height)
+      baseimgData = ctx.getImageData(0, 0, canv.width, canv.height)
+
+      for (var i = 0; i < steps.length; i++) {
+        if (typeof steps[i].ops === 'function' ) {
+          steps[i].imgData = steps[i].ops(baseimgData, steps[i].arg)
+        }
+      }
+
+      artctx.putImageData(baseimgData, 0, 0)
+      document.getElementById('load').style.display = 'none'
+
+      draw()
+    }
+  </script>
+</hmtl>

@@ -1,0 +1,315 @@
+<html>
+  <head>
+    <meta name="viewport" content="height=1920, width=1080">
+    <style type="text/css">
+      body {
+        margin: 0;
+        background-color: #8FB6C5;
+      }
+      .loader {
+        margin: 0px auto;
+        top:870px;
+        position: relative;
+        border: 16px solid hsl(199, 27%, 73%);
+        border-top: 16px solid #f3f3f3;
+        border-radius: 50%;
+        width: 120px;
+        height: 120px;
+        animation: loadanimation 5s linear infinite;
+        -webkit-animation: loadanimation 5s linear infinite;
+      }
+      @-webkit-keyframes loadanimation {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes loadanimation {
+        0% {
+          -webkit-transform: rotate(0deg);
+          transform: rotate(0deg);
+        }
+        100% {
+          -webkit-transform: rotate(360deg);
+          transform: rotate(360deg);
+        }
+      }
+    </style>
+  </head>
+  <div id="load" class="loader"></div>
+  <canvas id="art" width="1080" height="1920"></canvas>
+  <script src="./js/grafi-threshold.js" type="text/javascript" charset="utf-8"></script>
+  <script>
+    var steps = [
+      {
+        ops: 'hold',
+        arg: {duration: 5000}
+      },
+      {
+        ops: thresh,
+        arg: {level: 235}
+      },
+      {
+        ops: thresh,
+        arg: {level: 230}
+      },
+      {
+        ops: thresh,
+        arg: {level: 220}
+      },
+       {
+        ops: thresh,
+        arg: {level: 210}
+      },
+      {
+        ops: thresh,
+        arg: {level: 190}
+      },
+      {
+        ops: 'knit'
+      },
+      {
+        ops: 'hold',
+        arg: {duration: 30000}
+      },
+      {
+        ops: copyOriginal
+      }
+    ]
+    var fadeinterval = 800
+    var art = document.getElementById('art')
+    var artctx = art.getContext('2d')
+    var canv = document.createElement('canvas')
+    var ctx = canv.getContext('2d')
+    var step = 0
+    var baseimgData
+
+    var image = new Image()
+    image.crossOrigin = 'Anonymous'
+    image.src='./img/leaf.jpg'
+    var basecolorR = 180
+    var basecolorG = 190
+    var basecolorB = 105
+
+    var wGuage
+    var hGuage
+    var size = 20
+    var sWidth = size
+    var sHeight = size
+    var dip = size/2
+    var fade = 0
+
+    function fadeIn() {
+      fade++
+      artctx.globalAlpha = 0.01 * fade
+      artctx.drawImage(canv, 0, 0)
+      if (fade >= 23) {
+        fade = 0
+        artctx.globalAlpha = 1
+        artctx.drawImage(canv, 0, 0)
+        step++
+        draw()
+      } else {
+        setTimeout(fadeIn, fadeinterval)
+      }
+    }
+
+    function pixcelate (img, arg) {
+      var _canv = document.createElement('canvas')
+      var _ctx = _canv.getContext('2d')
+      _canv.width = img.width
+      _canv.height = img.height
+      var _scanv = document.createElement('canvas')
+      var _sctx = _scanv.getContext('2d')
+      _scanv.width = img.width*arg.scale
+      _scanv.height = img.height*arg.scale
+
+      _ctx.putImageData(img, 0, 0)
+
+      _sctx.mozImageSmoothingEnabled = false
+      _sctx.webkitImageSmoothingEnabled = false
+      _sctx.msImageSmoothingEnabled = false
+      _sctx.imageSmoothingEnabled = false
+      _sctx.drawImage(_canv, 0, 0, img.width*arg.scale, img.height*arg.scale)
+
+      _ctx.mozImageSmoothingEnabled = false
+      _ctx.webkitImageSmoothingEnabled = false
+      _ctx.msImageSmoothingEnabled = false
+      _ctx.imageSmoothingEnabled = false
+      _ctx.drawImage(_scanv, 0, 0, img.width, img.height)
+
+      return _ctx.getImageData(0, 0, img.width, img.height)
+    }
+
+    function copyOriginal() {
+      return baseimgData
+    }
+    function thresh (img, arg) {
+      var thdata = grafi.threshold(img, arg)
+      for(var y = 0; y<thdata.height;y++){
+        for(var x = 0; x<thdata.width; x++){
+          var index = (x + y * thdata.width) * 4
+          if (thdata.data[index] === 0) {
+            thdata.data[index] = img.data[index]
+            thdata.data[index+1] = img.data[index+1]
+            thdata.data[index+2] = img.data[index+2]
+          } else {
+            thdata.data[index] = basecolorR
+            thdata.data[index+1] = basecolorG
+            thdata.data[index+2] = basecolorB
+          }
+        }
+      }
+      return thdata
+    }
+
+    var x = 0
+    var y = 0
+    var count = 0
+    function knitsts() {
+      var xi = x*size
+      var yi = y*size
+      if (count === 0) {
+        var colorcheck = pixcelate(ctx.getImageData(xi, yi, size, size), {scale: 0.05})
+        if(colorcheck.data[0] === basecolorR && colorcheck.data[1] === basecolorG && colorcheck.data[2] === basecolorB){
+          count += 3
+        }else{
+          artctx.putImageData(pixcelate(ctx.getImageData(xi, yi, size, size), {scale: 0.2}), xi, yi)
+          if(y !== 0) {
+            var img2 = pixcelate(ctx.getImageData(xi, yi-size, size, size), {scale: 0.05})
+            knit(xi, yi-size, 'rgb('+img2.data[0]+','+img2.data[1]+','+img2.data[2]+')', artctx)
+          }
+        }
+      }
+
+      if (count === 1) {
+        artctx.putImageData(pixcelate(ctx.getImageData(xi, yi, size, size), {scale: 0.1}), xi, yi)
+        if(y !== 0) {
+          var img2 = pixcelate(ctx.getImageData(xi, yi-size, size, size), {scale: 0.05})
+          knit(xi, yi-size, 'rgb('+img2.data[0]+','+img2.data[1]+','+img2.data[2]+')', artctx)
+        }
+      }
+
+      if (count === 2) {
+        artctx.putImageData(pixcelate(ctx.getImageData(xi, yi, size, size), {scale: 0.05}), xi, yi)
+        if(y !== 0) {
+          var img2 = pixcelate(ctx.getImageData(xi, yi-size, size, size), {scale: 0.05})
+          knit(xi, yi-size, 'rgb('+img2.data[0]+','+img2.data[1]+','+img2.data[2]+')', artctx)
+        }
+      }
+
+      if (count === 3) {
+        artctx.putImageData(ctx.getImageData(xi, yi, size, size), xi, yi)
+        var img = pixcelate(ctx.getImageData(xi, yi, size, size), {scale: 0.05})
+        knit(xi, yi, 'rgb('+img.data[0]+','+img.data[1]+','+img.data[2]+')', artctx)
+        if(y !== 0) {
+          var img2 = pixcelate(ctx.getImageData(xi, yi-size, size, size), {scale: 0.05})
+          knit(xi, yi-size, 'rgb('+img2.data[0]+','+img2.data[1]+','+img2.data[2]+')', artctx)
+        }
+      }
+
+      count++
+
+      if (count > 3) {
+        count = 0
+        x++
+        if (x >= wGuage) {
+          x = 0
+          y++
+          if (y >= hGuage) {
+            x = 0
+            y = 0
+            step++
+            return draw()
+          }
+        }
+      }
+      setTimeout(knitsts, 150)
+    }
+
+    function knit(x, y, fill, ctx){
+      ctx.beginPath();
+      ctx.moveTo(x+(sWidth/2),y+dip);
+      ctx.quadraticCurveTo(x+sWidth-(sWidth/3), y-(sHeight/12), x+sWidth-(sWidth/10), y-sHeight/4)
+      ctx.quadraticCurveTo(x+sWidth-(sWidth/50), y, x+sWidth-(sWidth/70), y+(sHeight/10))
+
+      ctx.bezierCurveTo(x+sWidth, y+(sHeight/4), x+sWidth, y+(sHeight*0.50), x+sWidth-(sWidth/15), y+(sHeight*0.66))
+
+      ctx.bezierCurveTo(x+sWidth-(sWidth*0.3), y+sHeight, x+sWidth-(sWidth*0.3), y+sHeight, x+sWidth-(sWidth/2)+(sWidth/20), y+sHeight+sHeight/3)
+
+      ctx.quadraticCurveTo(x+sWidth-(sWidth*0.55), y+(sHeight*0.7), x+sWidth-(sWidth/2),y+dip)
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+
+      ctx.fillStyle = fill;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(x+(sWidth/2)-sWidth*.05,y+dip);
+
+      ctx.quadraticCurveTo(x+(sWidth*0.4), y+(sHeight/12), x+(sWidth/10), y-sHeight/4)
+
+      ctx.quadraticCurveTo(x+(sWidth/50), y, x+(sWidth/70), y+(sHeight/10))
+      ctx.bezierCurveTo(x, y+(sHeight/4), x, y+(sHeight*0.50), x+(sWidth/15), y+(sHeight*0.66))
+
+      ctx.bezierCurveTo(x+(sWidth*0.3), y+sHeight, x+(sWidth*0.3), y+sHeight, x+(sWidth/2)-(sWidth/20), y+sHeight+sHeight/3)
+
+      ctx.quadraticCurveTo(x+(sWidth*0.56), y+(sHeight+sHeight/4), x+(sWidth/2)-sWidth*.05,y+dip)
+
+      ctx.lineWidth = 1.5
+      ctx.stroke()
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    function draw () {
+      if (step >= steps.length) {
+        step = 0
+      }
+
+      if(steps[step].imgData) {
+        ctx.putImageData(steps[step].imgData, 0, 0)
+      }
+
+      if (steps[step].ops === 'hold'){
+        setTimeout(function () {
+          step++
+          draw()
+        }, steps[step].arg.duration)
+        return
+      }
+
+      if (steps[step].ops === 'knit'){
+        return knitsts()
+      }
+
+      return fadeIn()
+    }
+
+    image.onload = function () {
+      wGuage = image.width/size
+      hGuage = image.height/size
+      canv.width = image.width
+      canv.height = image.height
+      art.width = image.width
+      art.height = image.height
+      ctx.drawImage(image, 0, 0, canv.width, canv.height)
+
+      baseimgData = ctx.getImageData(0, 0, canv.width, canv.height)
+      artctx.putImageData(baseimgData, 0, 0)
+
+      for (var i = 0; i < steps.length; i++) {
+        if (typeof steps[i].ops === 'function' ) {
+          steps[i].imgData = steps[i].ops(baseimgData, steps[i].arg)
+        }
+      }
+
+      document.getElementById('load').style.display = 'none'
+      draw()
+    }
+  </script>
+</hmtl>
